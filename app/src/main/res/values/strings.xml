@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">MusicPlayer</string>
+    <string name="pause">pause</string>
+    <string name="channel_name">Sound Player</string>
+</resources>
