@@ -13,10 +13,12 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.session.PlaybackState
+import android.os.Bundle
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.media.session.MediaButtonReceiver
@@ -33,6 +35,8 @@ class MySessionCallback(private val service: MediaPlaybackService, private val m
     private lateinit var audioFocusRequest: AudioFocusRequest
 
     override fun onPlay() {
+        if(mediaSession.controller.playbackState.state == PlaybackStateCompat.STATE_PLAYING)
+            return
 
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
@@ -50,42 +54,120 @@ class MySessionCallback(private val service: MediaPlaybackService, private val m
             context.startService(Intent(context, MediaPlaybackService::class.java))
 
             mediaSession.isActive = true
-            mediaSession.setPlaybackState(PlaybackStateCompat.Builder(mediaSession.controller.playbackState).setState(PlaybackStateCompat.STATE_PLAYING, mediaSession.controller.playbackState.position,1f).build())
 
-            mediaPlayer.start()
-            context.registerReceiver(becomingNoisyReceiver, intentFilter)
-            // Put the service in the foreground, post notification
             val controller = mediaSession.controller
             val mediaMetadata = controller.metadata
             val description = mediaMetadata.description
 
+            mediaPlayer.start()
+            context.registerReceiver(becomingNoisyReceiver, intentFilter)
+            becomeNoisyRegistered = true
+
+            mediaSession.setPlaybackState(PlaybackStateCompat.Builder(mediaSession.controller.playbackState).setState(PlaybackStateCompat.STATE_PLAYING, mediaPlayer.currentPosition.toLong(),1f).build())
+
+            // Put the service in the foreground, post notification
             createNotificationChannel()
             service.startForeground(NOTIFICATION_ID, createNotification(description, controller.sessionActivity))
         }
     }
 
     public override fun onStop() {
+        if(mediaSession.controller.playbackState.state == PlaybackStateCompat.STATE_STOPPED)
+            return
+
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         audioManager.abandonAudioFocusRequest(audioFocusRequest)
-        context.unregisterReceiver(becomingNoisyReceiver)
+
+        if(becomeNoisyRegistered) {
+            context.unregisterReceiver(becomingNoisyReceiver)
+            becomeNoisyRegistered = false
+        }
+
         service.stopSelf()
         mediaSession.isActive = false
+
+        mediaPlayer.seekTo(0)
         mediaPlayer.stop()
+        mediaPlayer.prepare()
+
+        mediaSession.setPlaybackState(PlaybackStateCompat.Builder(mediaSession.controller.playbackState).setState(PlaybackStateCompat.STATE_STOPPED, 0,1f).build())
+
+        val controller = mediaSession.controller
+        val mediaMetadata = controller.metadata
+        val description = mediaMetadata.description
+
+
+        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, createNotification(description, controller.sessionActivity, false))
+
         service.stopForeground(false)
     }
 
     public override fun onPause() {
-        mediaSession.setPlaybackState(PlaybackStateCompat.Builder(mediaSession.controller.playbackState).setState(PlaybackStateCompat.STATE_PAUSED, mediaSession.controller.playbackState.position,1f).build())
+        if(mediaSession.controller.playbackState.state == PlaybackStateCompat.STATE_PAUSED)
+            return
 
         mediaPlayer.pause()
-        context.unregisterReceiver(becomingNoisyReceiver)
+
+        if(becomeNoisyRegistered) {
+            context.unregisterReceiver(becomingNoisyReceiver)
+            becomeNoisyRegistered = false
+        }
+
+        val controller = mediaSession.controller
+        val mediaMetadata = controller.metadata
+        val description = mediaMetadata.description
+
+        mediaSession.setPlaybackState(PlaybackStateCompat.Builder(mediaSession.controller.playbackState).setState(PlaybackStateCompat.STATE_PAUSED, mediaSession.controller.playbackState.position,1f).build())
+
+        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, createNotification(description, controller.sessionActivity, false))
+
         service.stopForeground(false)
+    }
+
+    override fun onSkipToPrevious() {
+        service.playPrevious()
+        if(mediaSession.controller.playbackState.state == PlaybackStateCompat.STATE_PLAYING){
+            mediaSession.setPlaybackState(PlaybackStateCompat.Builder(mediaSession.controller.playbackState).setState(PlaybackStateCompat.STATE_PLAYING, 0,1f).build())
+            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, createNotification(mediaSession.controller.metadata.description, mediaSession.controller.sessionActivity, true))
+            mediaPlayer.start()
+        }  else
+            onPlay()
+    }
+
+    override fun onSkipToNext() {
+
+        service.playNext()
+        if(mediaSession.controller.playbackState.state == PlaybackStateCompat.STATE_PLAYING){
+            mediaSession.setPlaybackState(PlaybackStateCompat.Builder(mediaSession.controller.playbackState).setState(PlaybackStateCompat.STATE_PLAYING, 0,1f).build())
+            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, createNotification(mediaSession.controller.metadata.description, mediaSession.controller.sessionActivity, true))
+            mediaPlayer.start()
+        } else
+            onPlay()
+    }
+
+    override fun onSeekTo(pos: Long) {
+        mediaSession.setPlaybackState(PlaybackStateCompat.Builder(mediaSession.controller.playbackState).setState(mediaSession.controller.playbackState.state, pos,1f).build())
+        mediaPlayer.seekTo(pos.toInt())
+    }
+
+    override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) {
+        if(mediaId == null)
+            return
+
+        service.playMedia(mediaId)
+        if(mediaSession.controller.playbackState.state == PlaybackStateCompat.STATE_PLAYING){
+            mediaSession.setPlaybackState(PlaybackStateCompat.Builder(mediaSession.controller.playbackState).setState(PlaybackStateCompat.STATE_PLAYING, 0,1f).build())
+            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, createNotification(mediaSession.controller.metadata.description, mediaSession.controller.sessionActivity, true))
+            mediaPlayer.start()
+        } else
+            onPlay()
     }
 
     override fun onAudioFocusChange(focusChange: Int) {
         TODO("Not yet implemented")
     }
 
+    private var becomeNoisyRegistered = false
     private val becomingNoisyReceiver  = object : BroadcastReceiver() {
 
         override fun onReceive(context: Context, intent: Intent) {
@@ -95,7 +177,7 @@ class MySessionCallback(private val service: MediaPlaybackService, private val m
         }
     }
 
-    private fun createNotification(description: MediaDescriptionCompat, sessionActivity: PendingIntent) : Notification {
+    private fun createNotification(description: MediaDescriptionCompat, sessionActivity: PendingIntent, pause: Boolean =true) : Notification {
         return NotificationCompat.Builder(context, CHANNEL_ID).apply {
             // Add the metadata for the currently playing track
             setContentTitle(description.title)
@@ -122,7 +204,7 @@ class MySessionCallback(private val service: MediaPlaybackService, private val m
             // Add a pause button
             addAction(
                 NotificationCompat.Action(
-                    R.drawable.pause,
+                    if (pause) R.drawable.pause else R.drawable.play,
                     context.getString(R.string.pause),
                     MediaButtonReceiver.buildMediaButtonPendingIntent(
                         context,
