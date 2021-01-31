@@ -20,7 +20,7 @@
         android:id="@+id/play_pause"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="play/pause"
+        android:text="@string/play_pause"
         app:layout_constraintBottom_toTopOf="@+id/minus_10"
         app:layout_constraintEnd_toStartOf="@+id/stop"
         app:layout_constraintHorizontal_bias="0.5"
@@ -30,7 +30,7 @@
         android:id="@+id/stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Stop"
+        android:text="@string/stop"
         app:layout_constraintBottom_toTopOf="@+id/minus_10"
         app:layout_constraintEnd_toStartOf="@+id/next"
         app:layout_constraintHorizontal_bias="0.5"
@@ -40,7 +40,7 @@
         android:id="@+id/previous"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Previous"
+        android:text="@string/previous"
         app:layout_constraintBottom_toTopOf="@+id/minus_10"
         app:layout_constraintEnd_toStartOf="@+id/play_pause"
         app:layout_constraintHorizontal_bias="0.5"
@@ -50,7 +50,7 @@
         android:id="@+id/next"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Next"
+        android:text="@string/next"
         app:layout_constraintBottom_toTopOf="@+id/minus_10"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
@@ -70,7 +70,7 @@
         android:id="@+id/plus_10"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="+10"
+        android:text="@string/_10"
         app:layout_constraintBottom_toTopOf="@+id/title"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -78,7 +78,7 @@
         android:id="@+id/minus_10"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="-10"
+        android:text="@string/minus_10"
         app:layout_constraintBottom_toTopOf="@+id/title"
         app:layout_constraintStart_toStartOf="parent" />
 

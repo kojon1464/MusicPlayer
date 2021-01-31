@@ -5,7 +5,6 @@ import android.content.ComponentName
 import android.content.DialogInterface
 import android.content.pm.PackageManager
 import android.media.AudioManager
-import android.media.session.PlaybackState
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -56,9 +55,9 @@ class MainActivity : AppCompatActivity() {
         if(hasPermission() && !mediaBrowser.isConnected)
             mediaBrowser.connect()
 
-        seekBar = findViewById<SeekBar>(R.id.seekBar)
-        title = findViewById<TextView>(R.id.title)
-        recyclerView = findViewById<RecyclerView>(R.id.recycler_view)
+        seekBar = findViewById(R.id.seekBar)
+        title = findViewById(R.id.title)
+        recyclerView = findViewById(R.id.recycler_view)
     }
 
     override fun onResume() {
@@ -220,7 +219,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun hasPermission() : Boolean {
-        return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun requestPermission(){

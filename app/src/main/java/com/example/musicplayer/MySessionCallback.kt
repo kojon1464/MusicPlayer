@@ -12,7 +12,6 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
-import android.media.session.PlaybackState
 import android.os.Bundle
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.session.MediaSessionCompat
@@ -20,12 +19,11 @@ import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.media.session.MediaButtonReceiver
 
 
-private const val NOTIFICATION_ID = 1;
-private const val CHANNEL_ID = "com.example.musicplayer";
+private const val NOTIFICATION_ID = 1
+private const val CHANNEL_ID = "com.example.musicplayer"
 
 class MySessionCallback(private val service: MediaPlaybackService, private val mediaSession: MediaSessionCompat, private val mediaPlayer: MediaPlayer) : MediaSessionCompat.Callback(), AudioManager.OnAudioFocusChangeListener {
 
@@ -71,7 +69,7 @@ class MySessionCallback(private val service: MediaPlaybackService, private val m
         }
     }
 
-    public override fun onStop() {
+    override fun onStop() {
         if(mediaSession.controller.playbackState.state == PlaybackStateCompat.STATE_STOPPED)
             return
 
@@ -102,7 +100,7 @@ class MySessionCallback(private val service: MediaPlaybackService, private val m
         service.stopForeground(false)
     }
 
-    public override fun onPause() {
+    override fun onPause() {
         if(mediaSession.controller.playbackState.state == PlaybackStateCompat.STATE_PAUSED)
             return
 

@@ -6,8 +6,6 @@ import android.content.Intent
 import android.database.Cursor
 import android.media.AudioAttributes
 import android.media.MediaPlayer
-import android.media.MediaPlayer.OnCompletionListener
-import android.media.browse.MediaBrowser
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
@@ -33,6 +31,11 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         super.onCreate()
 
         createMediaMetadataList()
+
+        if(mediaMetadatas.size < 1){
+            stopSelf()
+            return
+        }
 
         val contentUri: Uri =
             ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, mediaMetadatas[currentPlaying].getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID).toLong())
@@ -63,7 +66,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
             val callback = MySessionCallback(this@MediaPlaybackService, this, mediaPlayer)
             setCallback(callback)
 
-            mediaPlayer.setOnCompletionListener(OnCompletionListener {
+            mediaPlayer.setOnCompletionListener({
                 callback.onSkipToNext()
             })
 
@@ -78,7 +81,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
 
     override fun onLoadChildren(
         parentMediaId: String,
-        result: MediaBrowserServiceCompat.Result<List<MediaBrowserCompat.MediaItem>>
+        result: Result<List<MediaBrowserCompat.MediaItem>>
     ) {
         if(parentMediaId == MY_MEDIA_ROOT_ID){
             result.sendResult(mediaMetadatas.map { m -> MediaBrowserCompat.MediaItem(m.description, MediaBrowserCompat.MediaItem.FLAG_PLAYABLE)})
@@ -92,8 +95,8 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         clientPackageName: String,
         clientUid: Int,
         rootHints: Bundle?
-    ): MediaBrowserServiceCompat.BrowserRoot {
-           return MediaBrowserServiceCompat.BrowserRoot(MY_MEDIA_ROOT_ID, null)
+    ): BrowserRoot {
+           return BrowserRoot(MY_MEDIA_ROOT_ID, null)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -109,7 +112,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     fun playNext() {
         currentPlaying = (currentPlaying + 1) % mediaMetadatas.size
 
-        mediaPlayer.reset();
+        mediaPlayer.reset()
 
         val contentUri: Uri =
             ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, mediaMetadatas[currentPlaying].getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID).toLong())
@@ -124,7 +127,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         if(currentPlaying < 0)
             currentPlaying = mediaMetadatas.size - 1
 
-        mediaPlayer.reset();
+        mediaPlayer.reset()
 
         val contentUri: Uri =
             ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, mediaMetadatas[currentPlaying].getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID).toLong())
@@ -146,7 +149,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
 
         currentPlaying = index
 
-        mediaPlayer.reset();
+        mediaPlayer.reset()
 
         val contentUri: Uri =
             ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, mediaMetadatas[currentPlaying].getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID).toLong())
@@ -167,10 +170,8 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         val cursor: Cursor? = contentResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, requestedColumns, MediaStore.Audio.Media.IS_MUSIC+"=1", null, null)
         when {
             cursor == null -> {
-                // query failed, handle error.
             }
             !cursor.moveToFirst() -> {
-                // no media on the device
             }
             else -> {
                 do{
